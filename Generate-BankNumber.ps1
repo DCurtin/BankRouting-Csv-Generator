@@ -1,4 +1,4 @@
-﻿Function getACH
+﻿Function getACHSF
 {
     param($line)
 
@@ -27,7 +27,16 @@
     return $newEntry;
 }
 
-Function getWire
+Function getACHPSQL{
+    param($line)
+    $routingNum = $line.substring(0,9);
+    $bankName = $line.substring(35,36).Trim();
+    $route_and_type = $routingNum + "-" + "ACH";
+
+    return "`'$routingNum`',`'$($bankName -replace "'", "''")`',`'$route_and_type`'"
+}
+
+Function getWireSF
 {
     param($line)
 
@@ -50,27 +59,55 @@ Function getWire
     return $newEntry;
 }
 
+Function getWirePSQL{
+    param($line)
+    $routingNum = $line.substring(0,9);
+    $bankName = $line.substring(27,36).Trim();
+    $route_and_type = $routingNum + "-" + "Wire";
+
+    return "`'$routingNum`',`'$($bankName -replace "'", "''")`',`'$route_and_type`'"
+}
+
 Function Generate-BankNumber
 {
     param(
-        $folderPath,
-        $output
+        $ACHPath,
+        $WirePath,
+        $output,
+        $fileNameDate = $(Get-Date)
     )
-    [System.Collections.ArrayList] $csvOfBankRoutes = @();
+    
+    $dateFormated = "$($fileNameDate.year)-$($fileNameDate.Month.ToString().PadLeft(2,'0'))-$($fileNameDate.Day.ToString().PadLeft(2,'0'))"
 
-    foreach($line in Get-Content $folderPath)
+    [System.Collections.ArrayList] $csvOfACHRoutes = @();
+    [System.Collections.ArrayList] $csvOfWireRoutes = @();
+    [System.Collections.ArrayList] $csvOfBankRoutes = @();
+    [System.Collections.ArrayList] $psqlOfBankRoutes = @();
+    
+    $psqlHeader = 'INSERT INTO salesforce.bank_route (routing_number,name,route_and_type) VALUES'
+    
+    $dataLines = ($(Get-Content $ACHPath)+$(Get-Content $WirePath))
+    foreach($line in $dataLines)
     {
         $firstTwentyThreeChar = $line.substring(0,35);
         If($line -match "\d{9}\w\d{25}")
         {
             #ach
-            $newEntry = getACH $line;
-            $csvOfBankRoutes.add($newEntry)>$null;
+            $newEntry = getACHSF $line;
+            $csvOfACHRoutes.add($newEntry)>$null;
+
+            $psqlEntry = "($(getACHPSQL $line))"
+            #write-host $psqlEntry
+            $null = $psqlOfBankRoutes.Add($psqlEntry)
         }else
         {
             #wire
-            $newEntry = getWire $line;
-            $csvOfBankRoutes.add($newEntry)>$null;
+            $newEntry = getWireSF $line;
+            $csvOfWireRoutes.add($newEntry)>$null;
+            
+            $psqlEntry = "($(getWirePSQL $line))"
+            #write-host $psqlEntry
+            $null = $psqlOfBankRoutes.Add($psqlEntry)
         }
 
         #echo $line
@@ -80,7 +117,17 @@ Function Generate-BankNumber
         
         #$csvOfBankRoutes.add($newEntry) >$null;
     }
-    $csvOfBankRoutes | Export-Csv -Path $output -NoTypeInformation
+    if(-not $(Test-Path $output)){
+        mkdir $output
+    }
+
+    $csvOfACHRoutes | Export-Csv -Path "$output\ACH - $dateFormated.csv" -NoTypeInformation
+    $csvOfWireRoutes| Export-Csv -Path "$output\Wire - $dateFormated.csv" -NoTypeInformation
+
+    $psqlString = "$psqlHeader`r`n" + $($psqlOfBankRoutes -join ",`r`n") + "`r`n" + "ON CONFLICT (route_and_type) DO UPDATE SET (name,routing_number)=(EXCLUDED.name,EXCLUDED.routing_number);"
+    #Write-Host($psqlString)
+    $psqlString | Out-File -Encoding utf8 -FilePath "$output\ServerUpdate.psql"
+
     echo "Complete"
     #return $csvOfBankRoutes;
 }
