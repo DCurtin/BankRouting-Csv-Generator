@@ -68,7 +68,7 @@ Function getWirePSQL{
     return "`'$routingNum`',`'$($bankName -replace "'", "''")`',`'$route_and_type`'"
 }
 
-Function Generate-BankNumber
+function Generate-BankNumber
 {
     param(
         $ACHPath,
@@ -105,9 +105,9 @@ Function Generate-BankNumber
             $newEntry = getWireSF $line;
             $csvOfWireRoutes.add($newEntry)>$null;
             
-            $psqlEntry = "($(getWirePSQL $line))"
+            #$psqlEntry = "($(getWirePSQL $line))"
             #write-host $psqlEntry
-            $null = $psqlOfBankRoutes.Add($psqlEntry)
+            #$null = $psqlOfBankRoutes.Add($psqlEntry)
         }
 
         #echo $line
@@ -131,3 +131,5 @@ Function Generate-BankNumber
     echo "Complete"
     #return $csvOfBankRoutes;
 }
+
+Export-ModuleMember -Function Generate-BankNumber
