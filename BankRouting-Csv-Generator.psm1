@@ -8,9 +8,9 @@
     $recordTypeCode = $line.substring(19,1);
     $changeDate = $line.substring(20,6);
     $newRoutingNum = $line.substring(26,9);
-    $bankName = $line.substring(35,36);
-    $address = $line.substring(71,36);
-    $city = $line.substring(107,20);
+    $bankName = $line.substring(35,36).trim();
+    $address = $line.substring(71,36).trim();
+    $city = $line.substring(107,20).trim();
     $state = $line.substring(127,2);
     $zip = $line.substring(129,5);
     $zipExt = $line.substring(134,4);
@@ -41,14 +41,14 @@ Function getWireSF
     param($line)
 
     $routingNum = $line.substring(0,9);
-    $telgraphicName = $line.substring(9,18);
-    $bankName = $line.substring(27,36);
-    $state = $line.substring(63,2);
-    $city = $line.substring(65,25);
+    $telgraphicName = $line.substring(9,18).trim();
+    $bankName = $line.substring(27,36).trim();
+    $state = $line.substring(63,2).trim();
+    $city = $line.substring(65,25).trim();
     $fundsTransferStatus = $line.substring(90,1);
     $fundsSettledon = $line.substring(91,1);
     $bookEntry = $line.substring(92,1);
-    $dateofLastRev = $line.substring(93,8);
+    $dateofLastRev = $line.substring(93,8).trim();
     $Type='Wire';
     $BankRouteName=$routingNum + "-Wire";
     $Name = $BankRouteName;
@@ -71,8 +71,26 @@ Function getWirePSQL{
 function ConvertFrom-BankRouteFiles
 {
     param(
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName="Path", 
+                   ValueFromPipeline=$true, 
+                   ValueFromPipelineByPropertyName=$true,
+                   HelpMessage="Path to ACH file provided by bank")]
+        [ValidateNotNullOrEmpty()]
+        [String]
         $ACHPath,
+        [Parameter(Mandatory=$true, Position=1, ParameterSetName="Path", 
+                   ValueFromPipeline=$true, 
+                   ValueFromPipelineByPropertyName=$true,
+                   HelpMessage="Path to Wire file provided by bank")]
+        [ValidateNotNullOrEmpty()]
+        [String]
         $WirePath,
+        [Parameter(Mandatory=$true, Position=2, ParameterSetName="Path", 
+                   ValueFromPipeline=$true, 
+                   ValueFromPipelineByPropertyName=$true,
+                   HelpMessage="Output directory where the CSV's and psql update files will be saved")]
+        [ValidateNotNullOrEmpty()]
+        [String]
         $output,
         $fileNameDate = $(Get-Date)
     )
