@@ -101,6 +101,9 @@ function ConvertFrom-BankRouteFiles
             #wire
             $newEntry = getWireSF $line;
             $null = $csvOfWireRoutes.add($newEntry);
+
+            $psqlEntry = "($(getWirePSQL $line))"
+            $null = $psqlOfBankRoutes.Add($psqlEntry)
         }
     }
     if(-not $(Test-Path $output)){
